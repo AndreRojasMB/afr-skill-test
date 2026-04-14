@@ -8,6 +8,7 @@ CREATE TABLE productos (
 
 
 INSERT INTO productos (nombre, precio, stock) VALUES
+--productos de ejemplo
 ('Laptop', 999.99, 10),
 ('Mouse', 25.50, 50),
 ('Teclado', 45.00, 30);
