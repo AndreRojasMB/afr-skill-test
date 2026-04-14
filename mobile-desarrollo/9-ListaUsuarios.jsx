@@ -10,11 +10,11 @@ const usuarios = [
 export default function ListaUsuarios() {
   return (
     <View>
-      {/* TODO: Usa FlatList para renderizar la lista "usuarios".
-          - Prop "data": el arreglo de usuarios
-          - Prop "keyExtractor": retorna el id de cada item
-          - Prop "renderItem": muestra el nombre en un Text */}
-      {/* tu código aquí */}
+      <FlatList
+        data={usuarios}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <Text>{item.nombre}</Text>}
+      />
     </View>
   );
 }

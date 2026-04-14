@@ -6,13 +6,14 @@ export default function Perfil() {
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    // TODO: Usa fetch para obtener los datos de:
-    // https://jsonplaceholder.typicode.com/users/1
-    // Guarda el resultado en "usuario" con setUsuario
-    // y cambia "cargando" a false cuando finalice
-    /* tu código aquí */
+    fetch("https://jsonplaceholder.typicode.com/users/1")
+      .then((res) => res.json())
+      .then((data) => {
+        setUsuario(data);
+        setCargando(false);
+      });
   }, []);
-
+  
   if (cargando) return <ActivityIndicator />;
 
   return (
