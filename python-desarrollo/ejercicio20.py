@@ -9,7 +9,12 @@ import requests
 #    "Error al obtener el post"
 
 def obtener_post():
-    # TODO: tu código aquí
-    pass
+    try:
+        response = requests.get("https://jsonplaceholder.typicode.com/posts/1")
+        if response.status_code == 200:
+            data = response.json()
+            print("Título:", data["title"])
+    except:
+        print("Error al obtener el post")
 
 obtener_post()
