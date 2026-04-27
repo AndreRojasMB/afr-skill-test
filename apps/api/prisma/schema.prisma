@@ -1,0 +1,315 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  ADMIN
+  SUPERVISOR
+  TECNICO
+  ALMACEN
+  AUDITOR
+}
+
+enum LuminaireTechnology {
+  LED
+  VAPOR_SODIO
+  MERCURIO
+  HALOGENURO_METALICO
+  FLUORESCENTE
+  OTRO
+}
+
+enum LuminaireStatus {
+  OPERATIVA
+  FALLANDO
+  APAGADA
+  EN_MANTENIMIENTO
+  DESUSO
+  REEMPLAZADA
+}
+
+enum IncidentPriority {
+  BAJA
+  MEDIA
+  ALTA
+  CRITICA
+}
+
+enum IncidentStatus {
+  REPORTADA
+  VALIDADA
+  ASIGNADA
+  EN_REVISION
+  RESUELTA
+  CERRADA
+  RECHAZADA
+}
+
+enum MaintenanceType {
+  PREVENTIVO
+  CORRECTIVO
+  INSTALACION
+  REEMPLAZO
+  INSPECCION
+  RETIRO_BAJA
+}
+
+enum MaintenanceStatus {
+  PROGRAMADO
+  ASIGNADO
+  EN_PROGRESO
+  REQUIERE_COMPONENTE
+  COMPLETADO
+  CANCELADO
+}
+
+enum PoleDisposition {
+  UNILATERAL
+  BILATERAL
+  BILATERAL_DESPLAZADO
+  OTRO
+}
+
+enum ComponentCategory {
+  LUMINARIA_LED
+  LAMPARA_SODIO
+  DRIVER
+  FOTOCELDA
+  CABLE
+  FUSIBLE
+  POSTE
+  CONECTOR
+  OTRO
+}
+
+enum InventoryMovementType {
+  IN
+  OUT
+  ADJUSTMENT
+}
+
+model User {
+  id                 String              @id @default(uuid())
+  name               String
+  email              String              @unique
+  passwordHash       String
+  roleId             String
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  role               Role                @relation(fields: [roleId], references: [id])
+  reportedIncidents  Incident[]          @relation("IncidentReporter")
+  maintenances       Maintenance[]       @relation("MaintenanceTechnician")
+  inventoryMovements InventoryMovement[]
+  auditLogs          AuditLog[]
+  stateChanges       StateHistory[]      @relation("StatusChangedBy")
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  name        RoleName         @unique
+  description String?
+  users       User[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id       String           @id @default(uuid())
+  action   String
+  resource String
+  roles    RolePermission[]
+
+  @@unique([action, resource])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Municipality {
+  id           String     @id @default(uuid())
+  name         String
+  department   String
+  contactPhone String?
+  contactEmail String?
+  districts    District[]
+
+  @@unique([name, department])
+}
+
+model District {
+  id             String       @id @default(uuid())
+  name           String
+  municipalityId String
+  municipality   Municipality @relation(fields: [municipalityId], references: [id], onDelete: Cascade)
+  zones          Zone[]
+
+  @@unique([municipalityId, name])
+}
+
+model Zone {
+  id          String      @id @default(uuid())
+  name        String
+  districtId  String
+  district    District    @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  luminaires  Luminaire[]
+
+  @@unique([districtId, name])
+}
+
+model Luminaire {
+  id                          String                 @id @default(uuid())
+  qrCode                      String                 @unique
+  municipalCode               String                 @unique
+  technology                  LuminaireTechnology
+  powerWatts                  Int
+  brand                       String?
+  model                       String?
+  installedAt                 DateTime?
+  estimatedUsefulLifeHours    Int?
+  status                      LuminaireStatus        @default(OPERATIVA)
+  latitude                    Float?
+  longitude                   Float?
+  address                     String
+  zoneId                      String
+  poleHeightMeters            Float?
+  distanceBetweenPolesMeters  Float?
+  poleDisposition             PoleDisposition
+  monthlyConsumptionEstimateKwh Float?
+  operatingHoursPerDay        Float?                 @default(12)
+  createdAt                   DateTime               @default(now())
+  updatedAt                   DateTime               @updatedAt
+  zone                        Zone                   @relation(fields: [zoneId], references: [id])
+  components                  LuminaireComponent[]
+  incidents                   Incident[]
+  maintenances                Maintenance[]
+  stateHistory                StateHistory[]
+}
+
+model LuminaireComponent {
+  id          String     @id @default(uuid())
+  luminaireId String
+  componentId String
+  installedAt DateTime   @default(now())
+  status      String     @default("INSTALADO")
+  luminaire   Luminaire  @relation(fields: [luminaireId], references: [id], onDelete: Cascade)
+  component   Component  @relation(fields: [componentId], references: [id])
+
+  @@unique([luminaireId, componentId])
+}
+
+model Incident {
+  id            String           @id @default(uuid())
+  luminaireId   String
+  reportedById  String
+  type          String
+  priority      IncidentPriority
+  status        IncidentStatus   @default(REPORTADA)
+  description   String?
+  evidenceUrl   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  luminaire     Luminaire        @relation(fields: [luminaireId], references: [id])
+  reportedBy    User             @relation("IncidentReporter", fields: [reportedById], references: [id])
+}
+
+model Maintenance {
+  id                String                 @id @default(uuid())
+  luminaireId       String
+  technicianId      String
+  type              MaintenanceType
+  status            MaintenanceStatus      @default(PROGRAMADO)
+  failureType        String?
+  technicalNotes    String?
+  evidenceBeforeUrl String?
+  evidenceAfterUrl  String?
+  reviewedAt        DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  luminaire         Luminaire              @relation(fields: [luminaireId], references: [id])
+  technician        User                   @relation("MaintenanceTechnician", fields: [technicianId], references: [id])
+  components        MaintenanceComponent[]
+  inventoryMovements InventoryMovement[]
+}
+
+model MaintenanceComponent {
+  id            String      @id @default(uuid())
+  maintenanceId String
+  componentId   String
+  quantityUsed  Int
+  maintenance   Maintenance @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+  component     Component   @relation(fields: [componentId], references: [id])
+}
+
+model Component {
+  id                    String                 @id @default(uuid())
+  name                  String                 @unique
+  category              ComponentCategory
+  description           String?
+  unit                  String                 @default("unidad")
+  minimumStock          Int                    @default(1)
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  luminaireComponents   LuminaireComponent[]
+  maintenanceComponents MaintenanceComponent[]
+  inventoryItems        InventoryItem[]
+  inventoryMovements    InventoryMovement[]
+}
+
+model InventoryItem {
+  id            String    @id @default(uuid())
+  componentId   String
+  currentStock  Int       @default(0)
+  warehouseName String    @default("Almacen central")
+  component     Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@unique([componentId, warehouseName])
+}
+
+model InventoryMovement {
+  id            String                @id @default(uuid())
+  componentId   String
+  type          InventoryMovementType
+  quantity      Int
+  reason        String
+  maintenanceId String?
+  userId        String
+  createdAt     DateTime              @default(now())
+  component     Component             @relation(fields: [componentId], references: [id])
+  maintenance   Maintenance?          @relation(fields: [maintenanceId], references: [id])
+  user          User                  @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  userId     String?
+  action     String
+  entity     String
+  entityId   String?
+  beforeData Json?
+  afterData  Json?
+  createdAt  DateTime  @default(now())
+  user       User?      @relation(fields: [userId], references: [id])
+}
+
+model StateHistory {
+  id             String           @id @default(uuid())
+  luminaireId    String
+  previousStatus LuminaireStatus?
+  newStatus      LuminaireStatus
+  changedById    String?
+  reason         String?
+  createdAt      DateTime         @default(now())
+  luminaire      Luminaire        @relation(fields: [luminaireId], references: [id], onDelete: Cascade)
+  changedBy      User?            @relation("StatusChangedBy", fields: [changedById], references: [id])
+}
