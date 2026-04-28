@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev -w @smart-city/api & npm run dev -w @smart-city/web",
+    "dev": "node scripts/dev.mjs",
     "build": "npm run build -w @smart-city/shared && npm run build -w @smart-city/api && npm run build -w @smart-city/web",
     "lint": "npm run lint -w @smart-city/shared && npm run lint -w @smart-city/api && npm run lint -w @smart-city/web",
     "typecheck": "npm run typecheck -w @smart-city/shared && npm run typecheck -w @smart-city/api && npm run typecheck -w @smart-city/web",

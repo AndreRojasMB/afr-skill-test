@@ -54,6 +54,7 @@ npm run prisma:validate
 npm run prisma:generate
 npm run prisma:migrate
 npm run seed
+npm run dev
 npm run dev -w @smart-city/api
 npm run dev -w @smart-city/web
 npm run lint
